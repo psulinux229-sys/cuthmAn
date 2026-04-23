@@ -1,14 +1,15 @@
 import { Goal } from '../types';
-import { MOCK_GOALS } from '../mockData';
 import { Target, Search, Bell, ChevronRight, Zap, Target as TargetIcon, Shield, Search as SearchIcon, MousePointer2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
+import { useGoals } from '../contexts/GoalContext';
 
 interface DashboardViewProps {
   onGoalClick: (goal: Goal) => void;
 }
 
 export default function DashboardView({ onGoalClick }: DashboardViewProps) {
+  const { goals: MOCK_GOALS } = useGoals();
   const handleStartBuilding = () => {
     toast.success('Strategy Engine initialized. Your architectural journey begins.');
   };

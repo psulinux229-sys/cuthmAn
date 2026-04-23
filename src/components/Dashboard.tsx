@@ -1,14 +1,15 @@
 import React from 'react';
 import { MoreHorizontal, TrendingUp } from 'lucide-react';
-import { MOCK_GOALS } from '../mockData';
 import { Goal } from '../types';
 import { toast } from 'sonner';
+import { useGoals } from '../contexts/GoalContext';
 
 interface DashboardProps {
   onGoalClick: (goal: Goal) => void;
 }
 
 export default function Dashboard({ onGoalClick }: DashboardProps) {
+  const { goals: MOCK_GOALS } = useGoals();
   const totalProgress = MOCK_GOALS.length > 0 
     ? Math.round(MOCK_GOALS.reduce((acc, goal) => acc + goal.progress, 0) / MOCK_GOALS.length)
     : 0;

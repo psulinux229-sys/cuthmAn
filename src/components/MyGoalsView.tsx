@@ -1,8 +1,8 @@
 import React from 'react';
-import { MOCK_GOALS } from '../mockData';
 import { Goal } from '../types';
 import { ArrowRight, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
+import { useGoals } from '../contexts/GoalContext';
 
 interface MyGoalsViewProps {
   onGoalClick: (goal: Goal) => void;
@@ -10,6 +10,7 @@ interface MyGoalsViewProps {
 }
 
 export default function MyGoalsView({ onGoalClick, onCreateGoal }: MyGoalsViewProps) {
+  const { goals: MOCK_GOALS } = useGoals();
   const handleMoreOptions = (e: React.MouseEvent) => {
     e.stopPropagation();
     toast.info('Goal configuration access is restricted.');

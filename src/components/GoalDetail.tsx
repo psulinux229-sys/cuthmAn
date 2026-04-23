@@ -1,28 +1,23 @@
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock, Plus } from 'lucide-react';
-import { Goal } from '../types';
+import { Goal, Milestone, Note } from '../types';
 import ProgressBar from './ProgressBar';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { useGoals } from '../contexts/GoalContext';
 
 interface GoalDetailProps {
   goal: Goal;
   onBack: () => void;
 }
 
-export default function GoalDetail({ goal, onBack }: GoalDetailProps) {
-  const [milestones, setMilestones] = useState([
-    { title: 'Run a Half Marathon', completed: false, date: 'Scheduled for July 10' },
-    { title: 'Complete 20-mile long run', completed: false, date: 'Scheduled for August 20', active: true },
-    { title: 'Taper week prep', completed: false, date: 'Review nutrition and pacing strategy' },
-  ]);
+export default function GoalDetail({ goal: initialGoal, onBack }: GoalDetailProps) {
+  const { goals, toggleMilestone, addNote, addMilestone } = useGoals();
+  const goal = goals.find(g => g.id === initialGoal.id) || initialGoal;
 
-  const progressValue = Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100);
+  const progressValue = goal.progress;
 
-  const handleToggleMilestone = (idx: number) => {
-    const newMilestones = [...milestones];
-    newMilestones[idx].completed = !newMilestones[idx].completed;
-    setMilestones(newMilestones);
-    toast.success(newMilestones[idx].completed ? 'Milestone achieved!' : 'Milestone reverted.');
+  const handleToggleMilestone = (milestoneId: string) => {
+    toggleMilestone(goal.id, milestoneId);
   };
 
   const handleEdit = () => {
@@ -36,11 +31,27 @@ export default function GoalDetail({ goal, onBack }: GoalDetailProps) {
   };
 
   const handleAddTask = () => {
-    toast.info('Task creation queue is currently full.');
+    const title = window.prompt('Enter task title:');
+    if (title) {
+      addMilestone(goal.id, {
+        title,
+        completed: false,
+        description: 'Added via strategic override.'
+      });
+      toast.success('Task integrated into architecture.');
+    }
   };
 
   const handleAddNote = () => {
-    toast.success('Note archived in strategy logs.');
+    const content = window.prompt('Enter note content:');
+    if (content) {
+      addNote(goal.id, {
+        content: `"${content}"`,
+        type: 'progress',
+        author: 'User'
+      });
+      toast.success('Note archived in strategy logs.');
+    }
   };
 
   return (
@@ -130,10 +141,10 @@ export default function GoalDetail({ goal, onBack }: GoalDetailProps) {
           </div>
 
           <div className="space-y-4">
-            {milestones.map((milestone, idx) => (
+            {goal.milestones.map((milestone) => (
               <div 
-                key={idx}
-                onClick={() => handleToggleMilestone(idx)}
+                key={milestone.id}
+                onClick={() => handleToggleMilestone(milestone.id)}
                 className={`p-6 lg:p-8 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
                   milestone.completed 
                     ? 'bg-[#F8F9FF] border-transparent opacity-60' 
@@ -155,12 +166,17 @@ export default function GoalDetail({ goal, onBack }: GoalDetailProps) {
                   <div>
                     <h4 className={`font-extrabold text-lg lg:text-xl ${milestone.completed ? 'text-gray-400' : 'text-gray-900'}`}>{milestone.title}</h4>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-                      {milestone.date}
+                      {milestone.date || milestone.description || 'Pending Execution'}
                     </p>
                   </div>
                 </div>
               </div>
             ))}
+            {goal.milestones.length === 0 && (
+              <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl">
+                <p className="text-gray-400 font-medium">No milestones established for this architectural node.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -169,15 +185,24 @@ export default function GoalDetail({ goal, onBack }: GoalDetailProps) {
             <h2 className="text-3xl font-extrabold font-display text-gray-900 mb-10">Recent Notes & Motivation</h2>
             
             <div className="space-y-8">
-              <div className="bg-[#F8F9FF] rounded-2xl p-8 border border-black/5">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">PROGRESS NOTE</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">2 days ago</span>
+              {goal.notes.map((note) => (
+                <div key={note.id} className="bg-[#F8F9FF] rounded-2xl p-8 border border-black/5">
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">{note.type.toUpperCase()} NOTE</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{note.date}</span>
+                  </div>
+                  <p className="text-sm lg:text-base font-medium italic text-gray-600 leading-relaxed">
+                    {note.content}
+                  </p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">AUTHOR: {note.author}</p>
                 </div>
-                <p className="text-sm lg:text-base font-medium italic text-gray-600 leading-relaxed italic">
-                  "Felt incredibly strong on the 16-miler today. The negative splits in the final 3 miles were exactly on target. Keep trusting the process."
-                </p>
-              </div>
+              ))}
+              
+              {goal.notes.length === 0 && (
+                <div className="text-center py-8 border border-dashed border-gray-200 rounded-2xl">
+                  <p className="text-xs text-gray-400 font-medium italic">Strategic logs are currently empty.</p>
+                </div>
+              )}
 
               <div className="relative rounded-3xl overflow-hidden aspect-square lg:aspect-video group cursor-pointer border border-black/5 shadow-lg">
                 <img 

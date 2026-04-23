@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Calendar, ChevronDown } from 'lucide-react';
+import { X, Calendar, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getAiMilestoneSuggestions } from '../services/aiService';
+import { toast } from 'sonner';
 
 interface CreateGoalModalProps {
   isOpen: boolean;
@@ -13,6 +15,28 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Fitness');
   const [deadline, setDeadline] = useState('');
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestedMilestones, setSuggestedMilestones] = useState<any[]>([]);
+
+  const handleAiSuggest = async () => {
+    if (!title || !description) {
+      toast.error('Title and Description are required for AI analysis.');
+      return;
+    }
+
+    setIsSuggesting(true);
+    try {
+      const suggestions = await getAiMilestoneSuggestions(title, description, category);
+      setSuggestedMilestones(suggestions);
+      toast.success('Architectural Clarity achieved.', {
+        description: 'AI has analyzed your goal and suggested strategic milestones.'
+      });
+    } catch (error) {
+      toast.error('AI Guidance unavailable at this time.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +46,12 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
       title,
       description,
       category,
-      dueDate: deadline,
+      dueDate: deadline ? `Due ${new Date(deadline).toLocaleDateString()}` : 'No deadline',
+      targetDate: deadline ? new Date(deadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Ongoing',
       progress: 0,
+      milestones: suggestedMilestones.map(m => ({ ...m, completed: false, id: crypto.randomUUID() })),
+      notes: [],
+      status: 'active'
     });
     
     // Reset fields
@@ -31,6 +59,7 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
     setDescription('');
     setCategory('Fitness');
     setDeadline('');
+    setSuggestedMilestones([]);
     onClose();
   };
 
@@ -81,7 +110,18 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
 
                 {/* Description */}
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-2">Description</label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900">Description</label>
+                    <button 
+                      type="button"
+                      onClick={handleAiSuggest}
+                      disabled={isSuggesting || !title || !description}
+                      className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-secondary disabled:opacity-50 transition-colors"
+                    >
+                      {isSuggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                      AI Guidance
+                    </button>
+                  </div>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -90,6 +130,24 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
                     className="w-full px-5 py-4 bg-[#F8F9FA] border border-black/5 rounded-xl focus:ring-2 focus:ring-[#0036C1]/20 outline-none transition-all text-sm font-medium resize-none"
                   />
                 </div>
+
+                {suggestedMilestones.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="bg-brand-light p-4 rounded-xl border border-brand-primary/20"
+                  >
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-3">AI Suggested Milestones</h3>
+                    <ul className="space-y-2">
+                      {suggestedMilestones.map((m, i) => (
+                        <li key={i} className="text-xs font-medium text-gray-700 flex gap-2">
+                          <span className="text-brand-primary">•</span>
+                          {m.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
 
                 <div className="grid grid-cols-2 gap-6">
                   {/* Category */}

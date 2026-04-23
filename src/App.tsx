@@ -17,11 +17,15 @@ import CreateGoalModal from './components/CreateGoalModal';
 import { Toaster, toast } from 'sonner';
 import { Goal, View } from './types';
 
-export default function App() {
+import { GoalProvider, useGoals } from './contexts/GoalContext';
+
+function AppContent() {
   const [currentView, setCurrentView] = useState<View>('overview');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const { addGoal } = useGoals();
 
   const handleGoalClick = (goal: Goal) => {
     setSelectedGoal(goal);
@@ -29,10 +33,10 @@ export default function App() {
   };
 
   const handleCreateSave = (newGoal: any) => {
+    addGoal(newGoal);
     toast.success('Goal Architectural Node established.', {
       description: `"${newGoal.title}" has been added to your strategic workspace.`
     });
-    // In a real app, we'd add it to a list/DB here.
   };
 
   const renderView = () => {
@@ -122,6 +126,14 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <GoalProvider>
+      <AppContent />
+    </GoalProvider>
   );
 }
 
