@@ -1,0 +1,57 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+
+  --color-brand-primary: #0036C1;
+  --color-brand-secondary: #002ba1;
+  --color-brand-light: #DEE5FF;
+  
+  --color-success: #50FFC2;
+  --color-success-dim: rgba(0, 255, 178, 0.1);
+  
+  --color-surface: #F8F9FA;
+  --color-card: #FFFFFF;
+  --color-border: #EEEEEE;
+
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+}
+
+:root {
+  background-color: var(--color-surface);
+  color: #1A1A1A;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D1D5DB;
+}
+
+::selection {
+  background-color: var(--color-brand-light);
+  color: var(--color-brand-primary);
+}
