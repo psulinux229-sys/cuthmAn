@@ -2,16 +2,15 @@ import React from 'react';
 import { MoreHorizontal, TrendingUp } from 'lucide-react';
 import { Goal } from '../types';
 import { toast } from 'sonner';
-import { useGoals } from '../contexts/GoalContext';
 
 interface DashboardProps {
   onGoalClick: (goal: Goal) => void;
+  goals: Goal[];
 }
 
-export default function Dashboard({ onGoalClick }: DashboardProps) {
-  const { goals: MOCK_GOALS } = useGoals();
-  const totalProgress = MOCK_GOALS.length > 0 
-    ? Math.round(MOCK_GOALS.reduce((acc, goal) => acc + goal.progress, 0) / MOCK_GOALS.length)
+export default function Dashboard({ onGoalClick, goals }: DashboardProps) {
+  const totalProgress = goals.length > 0 
+    ? Math.round(goals.reduce((acc, goal) => acc + (goal.progress || 0), 0) / goals.length)
     : 0;
 
   const handleMoreOptions = (e: React.MouseEvent) => {
@@ -30,15 +29,10 @@ export default function Dashboard({ onGoalClick }: DashboardProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div>
           <p className="text-[10px] font-black font-sans text-gray-400 uppercase tracking-[0.2em] mb-2">Dashboard</p>
-          <h1 className="text-4xl lg:text-6xl font-bold font-display text-gray-900 tracking-tight">Good Morning.</h1>
+          <h1 className="text-4xl lg:text-6xl font-bold font-display text-gray-900 tracking-tight">
+            Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}.
+          </h1>
         </div>
-        <img 
-          src="https://api.dicebear.com/7.x/avataaars/svg?seed=Cuthmaan" 
-          alt="User" 
-          className="w-12 h-12 rounded-xl bg-gray-200 shadow-sm hidden md:block cursor-pointer hover:ring-2 hover:ring-brand-primary transition-all"
-          onClick={() => toast.info('System Identity: Cuthmaan')}
-          referrerPolicy="no-referrer"
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10 lg:mb-12">
@@ -51,7 +45,7 @@ export default function Dashboard({ onGoalClick }: DashboardProps) {
           </div>
           <div className="flex items-end gap-3 mb-6">
             <span className="text-5xl lg:text-7xl font-bold font-display leading-none">{totalProgress}%</span>
-            <p className="text-xs lg:text-sm text-gray-500 mb-2 font-medium">Of Q3 objectives completed.</p>
+            <p className="text-xs lg:text-sm text-gray-500 mb-2 font-medium">Of strategic objectives completed.</p>
           </div>
           <div className="h-2.5 lg:h-3 w-full bg-gray-100 rounded-full overflow-hidden">
             <div className="h-full bg-success transition-all duration-1000" style={{ width: `${totalProgress}%` }} />
@@ -60,8 +54,8 @@ export default function Dashboard({ onGoalClick }: DashboardProps) {
 
         <div className="bg-white rounded-2xl p-6 lg:p-8 border border-border shadow-sm flex flex-col justify-center cursor-pointer hover:bg-brand-light transition-colors" onClick={handleViewAll}>
           <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Active Focus</h3>
-          <span className="text-5xl lg:text-7xl font-bold font-display leading-none">4</span>
-          <p className="text-xs lg:text-sm text-gray-500 mt-3 font-medium">Goals currently in progress</p>
+          <span className="text-5xl lg:text-7xl font-bold font-display leading-none">{goals.length}</span>
+          <p className="text-xs lg:text-sm text-gray-500 mt-3 font-medium">Strategic nodes in progress</p>
         </div>
       </div>
 
@@ -75,45 +69,51 @@ export default function Dashboard({ onGoalClick }: DashboardProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {MOCK_GOALS.map((goal) => (
-          <div 
-            key={goal.id}
-            onClick={() => onGoalClick(goal)}
-            className="group bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all cursor-pointer"
-          >
-            <div className="flex justify-between items-start mb-6">
-              <span className="px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 rounded-full tracking-wider uppercase">
-                {goal.category}
-              </span>
-              <button 
-                onClick={handleMoreOptions}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <MoreHorizontal size={20} />
-              </button>
+      {goals.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {goals.map((goal) => (
+            <div 
+              key={goal.id}
+              onClick={() => onGoalClick(goal)}
+              className="group bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all cursor-pointer"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <span className="px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 rounded-full tracking-wider uppercase">
+                  {goal.category}
+                </span>
+                <button 
+                  onClick={handleMoreOptions}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <MoreHorizontal size={20} />
+                </button>
+              </div>
+              
+              <h3 className="text-lg font-bold font-display text-gray-900 mb-2 group-hover:text-brand-primary transition-colors">
+                {goal.title}
+              </h3>
+              <p className="text-sm text-gray-500 mb-8 line-clamp-2 h-10">
+                {goal.description}
+              </p>
+              
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-bold text-gray-900">{goal.progress || 0}%</span>
+                <span className="text-[11px] font-medium text-gray-400">{goal.dueDate}</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-success transition-all duration-500" 
+                  style={{ width: `${goal.progress || 0}%` }} 
+                />
+              </div>
             </div>
-            
-            <h3 className="text-lg font-bold font-display text-gray-900 mb-2 group-hover:text-brand-primary transition-colors">
-              {goal.title}
-            </h3>
-            <p className="text-sm text-gray-500 mb-8 line-clamp-2 h-10">
-              {goal.description}
-            </p>
-            
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-sm font-bold text-gray-900">{goal.progress}%</span>
-              <span className="text-[11px] font-medium text-gray-400">{goal.dueDate}</span>
-            </div>
-            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-success transition-all duration-500" 
-                style={{ width: `${goal.progress}%` }} 
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-white rounded-3xl border border-black/5">
+          <p className="text-gray-400 font-medium">No strategic goals found. Initialize your first focus node.</p>
+        </div>
+      )}
     </div>
   );
 }

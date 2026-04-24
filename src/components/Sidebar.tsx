@@ -6,7 +6,8 @@ import {
   Settings, 
   Target,
   CircleHelp,
-  Tag
+  Tag,
+  LogOut
 } from 'lucide-react';
 import { View } from '../types';
 import { toast } from 'sonner';
@@ -87,17 +88,22 @@ export default function Sidebar({ currentView, onNavigate, isOpen, onClose, onCr
           <span className="text-sm font-medium">Help Center</span>
         </button>
         
-        <div className="flex items-center gap-3 px-4 py-2">
-          <img 
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Cuthmaan" 
-            alt="User profile" 
-            className="w-8 h-8 rounded-full bg-gray-200"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-sm font-semibold text-gray-900">Cuthmaan</span>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-black/5">
+            <div className="flex items-center gap-3">
+              <img 
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Cuthmaan`} 
+                alt="User profile" 
+                className="w-8 h-8 rounded-full bg-gray-200"
+                referrerPolicy="no-referrer"
+              />
+              <span className="text-sm font-semibold text-gray-900 truncate max-w-[100px]">Cuthmaan</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </>
 );
 }
+

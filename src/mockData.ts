@@ -2,7 +2,7 @@ import { Goal } from './types';
 
 export const MOCK_GOALS: Goal[] = [
   {
-    id: '1',
+    id: '00000000-0000-0000-0000-000000000001',
     title: 'Marathon Training',
     category: 'FITNESS',
     progress: 0,
@@ -11,13 +11,13 @@ export const MOCK_GOALS: Goal[] = [
     targetDate: 'October 15, 2024',
     status: 'active',
     milestones: [
-      { id: 'm1', title: 'Run a Half Marathon', completed: false, date: 'July 10' },
-      { id: 'm2', title: 'Complete 20-mile long run', completed: false, date: 'August 20' },
-      { id: 'm3', title: 'Taper week prep', completed: false, description: 'Review nutrition and pacing strategy' }
+      { id: '10000000-0000-0000-0000-000000000001', title: 'Run a Half Marathon', completed: false, date: 'July 10' },
+      { id: '10000000-0000-0000-0000-000000000002', title: 'Complete 20-mile long run', completed: false, date: 'August 20' },
+      { id: '10000000-0000-0000-0000-000000000003', title: 'Taper week prep', completed: false, description: 'Review nutrition and pacing strategy' }
     ],
     notes: [
       {
-        id: 'n1',
+        id: '20000000-0000-0000-0000-000000000001',
         type: 'progress',
         content: '"Felt incredibly strong on the 16-miler today. The negative splits in the final 3 miles were exactly on target. Keep trusting the process."',
         author: 'Cuthmaan',
@@ -26,7 +26,7 @@ export const MOCK_GOALS: Goal[] = [
     ]
   },
   {
-    id: '2',
+    id: '00000000-0000-0000-0000-000000000002',
     title: 'AWS Certification',
     category: 'CAREER',
     progress: 0,
@@ -38,7 +38,7 @@ export const MOCK_GOALS: Goal[] = [
     notes: []
   },
   {
-    id: '3',
+    id: '00000000-0000-0000-0000-000000000003',
     title: 'Emergency Fund',
     category: 'FINANCE',
     progress: 0,

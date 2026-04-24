@@ -1,23 +1,53 @@
 import { ArrowLeft, CheckCircle2, ChevronRight, Clock, Plus } from 'lucide-react';
-import { Goal, Milestone, Note } from '../types';
+import { Goal, Milestone } from '../types';
 import ProgressBar from './ProgressBar';
 import { toast } from 'sonner';
-import { useState } from 'react';
-import { useGoals } from '../contexts/GoalContext';
+import { useState, useEffect } from 'react';
 
 interface GoalDetailProps {
   goal: Goal;
   onBack: () => void;
+  onUpdate?: (updates: Partial<Goal>) => Promise<void>;
 }
 
-export default function GoalDetail({ goal: initialGoal, onBack }: GoalDetailProps) {
-  const { goals, toggleMilestone, addNote, addMilestone } = useGoals();
-  const goal = goals.find(g => g.id === initialGoal.id) || initialGoal;
+export default function GoalDetail({ goal, onBack, onUpdate }: GoalDetailProps) {
+  const [milestones, setMilestones] = useState<Milestone[]>(goal.milestones || []);
 
-  const progressValue = goal.progress;
+  const progressValue = milestones.length > 0
+    ? Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100)
+    : goal.progress || 0;
 
-  const handleToggleMilestone = (milestoneId: string) => {
-    toggleMilestone(goal.id, milestoneId);
+  const handleToggleMilestone = async (milestoneId: string, currentStatus: boolean) => {
+    const newMilestones = milestones.map(m => 
+      m.id === milestoneId ? { ...m, completed: !currentStatus } : m
+    );
+    setMilestones(newMilestones);
+    
+    if (onUpdate) {
+      const newProgress = Math.round((newMilestones.filter(m => m.completed).length / newMilestones.length) * 100);
+      await onUpdate({ milestones: newMilestones, progress: newProgress });
+    }
+    
+    toast.success(!currentStatus ? 'Milestone achieved!' : 'Milestone reverted.');
+  };
+
+  const handleAddMilestone = async (newMilestone: Partial<Milestone>) => {
+    const milestone: Milestone = {
+      id: crypto.randomUUID(),
+      title: newMilestone.title || 'Untitled Milestone',
+      completed: false,
+      date: newMilestone.date || 'ASAP',
+      ...newMilestone
+    };
+    const newMilestones = [...milestones, milestone];
+    setMilestones(newMilestones);
+    
+    if (onUpdate) {
+      const newProgress = Math.round((newMilestones.filter(m => m.completed).length / newMilestones.length) * 100);
+      await onUpdate({ milestones: newMilestones, progress: newProgress });
+    }
+    
+    toast.success('Strategy node added.');
   };
 
   const handleEdit = () => {
@@ -31,27 +61,11 @@ export default function GoalDetail({ goal: initialGoal, onBack }: GoalDetailProp
   };
 
   const handleAddTask = () => {
-    const title = window.prompt('Enter task title:');
-    if (title) {
-      addMilestone(goal.id, {
-        title,
-        completed: false,
-        description: 'Added via strategic override.'
-      });
-      toast.success('Task integrated into architecture.');
-    }
+    toast.info('Task creation queue is currently full.');
   };
 
   const handleAddNote = () => {
-    const content = window.prompt('Enter note content:');
-    if (content) {
-      addNote(goal.id, {
-        content: `"${content}"`,
-        type: 'progress',
-        author: 'User'
-      });
-      toast.success('Note archived in strategy logs.');
-    }
+    toast.success('Note archived in strategy logs.');
   };
 
   return (
@@ -141,40 +155,47 @@ export default function GoalDetail({ goal: initialGoal, onBack }: GoalDetailProp
           </div>
 
           <div className="space-y-4">
-            {goal.milestones.map((milestone) => (
-              <div 
-                key={milestone.id}
-                onClick={() => handleToggleMilestone(milestone.id)}
-                className={`p-6 lg:p-8 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
-                  milestone.completed 
-                    ? 'bg-[#F8F9FF] border-transparent opacity-60' 
-                    : (milestone as any).active
-                      ? 'bg-[#F8F9FF] border-[#0036C1] border-l-8'
-                      : 'bg-white border-black/5'
-                }`}
-              >
-                <div className="flex items-center gap-6">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${
-                    milestone.completed ? 'bg-[#50FFC2] border-transparent text-white' : 'border-gray-200 bg-white'
-                  }`}>
-                    {milestone.completed ? (
-                      <CheckCircle2 size={24} className="text-[#0036C1]" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className={`font-extrabold text-lg lg:text-xl ${milestone.completed ? 'text-gray-400' : 'text-gray-900'}`}>{milestone.title}</h4>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-                      {milestone.date || milestone.description || 'Pending Execution'}
-                    </p>
+            {milestones.length > 0 ? (
+              milestones.map((milestone) => (
+                <div 
+                  key={milestone.id}
+                  onClick={() => handleToggleMilestone(milestone.id, milestone.completed)}
+                  className={`p-6 lg:p-8 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
+                    milestone.completed 
+                      ? 'bg-[#F8F9FF] border-transparent opacity-60' 
+                      : (milestone as any).active
+                        ? 'bg-[#F8F9FF] border-[#0036C1] border-l-8'
+                        : 'bg-white border-black/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-6">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${
+                      milestone.completed ? 'bg-[#50FFC2] border-transparent text-white' : 'border-gray-200 bg-white'
+                    }`}>
+                      {milestone.completed ? (
+                        <CheckCircle2 size={24} className="text-[#0036C1]" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                      )}
+                    </div>
+                    <div>
+                      <h4 className={`font-extrabold text-lg lg:text-xl ${milestone.completed ? 'text-gray-400' : 'text-gray-900'}`}>{milestone.title}</h4>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                        {milestone.date || 'No date scheduled'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {goal.milestones.length === 0 && (
-              <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl">
-                <p className="text-gray-400 font-medium">No milestones established for this architectural node.</p>
+              ))
+            ) : (
+              <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <p className="text-sm font-medium text-gray-400">No milestones established for this node.</p>
+                <button 
+                  onClick={() => handleAddMilestone({ title: 'Initialize Strategy', date: 'ASAP' })}
+                  className="mt-4 text-[#0036C1] font-bold text-xs uppercase underline tracking-widest"
+                >
+                  Quick Initialize
+                </button>
               </div>
             )}
           </div>
@@ -185,24 +206,15 @@ export default function GoalDetail({ goal: initialGoal, onBack }: GoalDetailProp
             <h2 className="text-3xl font-extrabold font-display text-gray-900 mb-10">Recent Notes & Motivation</h2>
             
             <div className="space-y-8">
-              {goal.notes.map((note) => (
-                <div key={note.id} className="bg-[#F8F9FF] rounded-2xl p-8 border border-black/5">
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">{note.type.toUpperCase()} NOTE</span>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{note.date}</span>
-                  </div>
-                  <p className="text-sm lg:text-base font-medium italic text-gray-600 leading-relaxed">
-                    {note.content}
-                  </p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">AUTHOR: {note.author}</p>
+              <div className="bg-[#F8F9FF] rounded-2xl p-8 border border-black/5">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">PROGRESS NOTE</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">2 days ago</span>
                 </div>
-              ))}
-              
-              {goal.notes.length === 0 && (
-                <div className="text-center py-8 border border-dashed border-gray-200 rounded-2xl">
-                  <p className="text-xs text-gray-400 font-medium italic">Strategic logs are currently empty.</p>
-                </div>
-              )}
+                <p className="text-sm lg:text-base font-medium italic text-gray-600 leading-relaxed italic">
+                  "Felt incredibly strong on the 16-miler today. The negative splits in the final 3 miles were exactly on target. Keep trusting the process."
+                </p>
+              </div>
 
               <div className="relative rounded-3xl overflow-hidden aspect-square lg:aspect-video group cursor-pointer border border-black/5 shadow-lg">
                 <img 

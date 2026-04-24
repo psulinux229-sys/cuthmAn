@@ -1,6 +1,6 @@
 import { Shield, Bell, Globe, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Profile() {
   const [signals, setSignals] = useState([
@@ -9,6 +9,13 @@ export default function Profile() {
     { title: 'Weekly Digest', desc: 'Email summary of performance', active: false },
   ]);
 
+  const [formData, setFormData] = useState({
+    firstName: 'Cuthmaan',
+    lastName: '',
+    email: 'cuthmaan@example.com',
+    role: 'Product Architect'
+  });
+
   const toggleSignal = (idx: number) => {
     const newSignals = [...signals];
     newSignals[idx].active = !newSignals[idx].active;
@@ -16,7 +23,7 @@ export default function Profile() {
     toast.success(`${newSignals[idx].title} ${newSignals[idx].active ? 'enabled' : 'disabled'}.`);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     toast.success('Profile architecture updated.', {
       description: 'Changes have been synchronized across all nodes.'
     });
@@ -107,7 +114,8 @@ export default function Profile() {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">First Name</label>
                 <input 
                   type="text" 
-                  defaultValue="Cuthmaan" 
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                   className="w-full border-b border-gray-200 py-2 focus:border-brand-primary outline-none font-medium text-sm lg:text-base"
                 />
               </div>
@@ -115,7 +123,8 @@ export default function Profile() {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Last Name</label>
                 <input 
                   type="text" 
-                  defaultValue="" 
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                   className="w-full border-b border-gray-200 py-2 focus:border-brand-primary outline-none font-medium text-sm lg:text-base"
                 />
               </div>
@@ -125,7 +134,8 @@ export default function Profile() {
               <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Email Address</label>
               <input 
                 type="email" 
-                defaultValue="cuthmaan@example.com" 
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
                 className="w-full border-b border-gray-200 py-2 focus:border-brand-primary outline-none font-medium text-sm lg:text-base"
               />
             </div>
@@ -134,7 +144,8 @@ export default function Profile() {
               <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Professional Role</label>
               <input 
                 type="text" 
-                defaultValue="Product Architect" 
+                value={formData.role}
+                onChange={(e) => setFormData({...formData, role: e.target.value})}
                 className="w-full border-b border-gray-200 py-2 focus:border-brand-primary outline-none font-medium text-sm lg:text-base"
               />
             </div>
