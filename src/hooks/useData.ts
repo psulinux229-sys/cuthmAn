@@ -1,42 +1,107 @@
 import { useState, useEffect } from 'react';
 import { Goal } from '../types';
 import { toast } from 'sonner';
+import { db, auth } from '../lib/firebase';
+import { collection, doc, query, where, orderBy, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 
-// Using a stable UID for the "Axiom" demo if no auth is present
-const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
 
-export function useData() {
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export function useData(userId: string | undefined) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{message: string, code?: string} | null>(null);
 
   const fetchGoals = async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const response = await fetch('/api/goals', {
-        headers: { 'x-user-id': DEMO_USER_ID }
+      setLoading(true);
+      const q = query(
+        collection(db, 'goals'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const fetchedGoals: Goal[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedGoals.push(doc.data() as Goal);
       });
       
-      const contentType = response.headers.get("content-type");
-      if (!response.ok) {
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const data = await response.json();
-          throw { message: data.error || 'Server error', code: data.code };
-        } else {
-          const text = await response.text();
-          throw { message: `Server returned ${response.status}: ${text.slice(0, 100)}` };
+      // Update logic for expiration
+      const now = new Date();
+      let hasUpdates = false;
+      const updatedGoals = fetchedGoals.map(g => {
+        if (g.deadline && g.status === 'active' && new Date(g.deadline) < now) {
+          hasUpdates = true;
+          return { ...g, status: 'invalid' as 'invalid' };
         }
+        return g;
+      });
+
+      if (hasUpdates) {
+        // Sync expired goals back to db silently
+        updatedGoals.forEach(g => {
+          if (g.status === 'invalid' && fetchedGoals.find(fg => fg.id === g.id)?.status !== 'invalid') {
+            setDoc(doc(db, 'goals', g.id), { ...g, updatedAt: Date.now() }, { merge: true }).catch(console.error);
+          }
+        });
       }
 
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        const data = await response.json();
-        setGoals(data);
-        setError(null);
-      } else {
-        throw { message: 'Expected JSON response from server' };
-      }
+      setGoals(updatedGoals);
+      setError(null);
     } catch (err: any) {
       console.error('Fetch error:', err);
-      setError(err);
+      toast.error('Failed to load cloud nodes.');
+      handleFirestoreError(err, OperationType.LIST, 'goals');
     } finally {
       setLoading(false);
     }
@@ -44,47 +109,47 @@ export function useData() {
 
   useEffect(() => {
     fetchGoals();
-  }, []);
+  }, [userId]);
 
   const saveGoal = async (goal: Goal) => {
+    if (!userId) return goal;
     try {
-      const response = await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-user-id': DEMO_USER_ID 
-        },
-        body: JSON.stringify(goal),
-      });
-      if (!response.ok) throw new Error('Failed to save to cloud.');
-      const savedGoal = await response.json();
+      const isNew = !goals.find(g => g.id === goal.id);
+      const payload = {
+        ...goal,
+        userId,
+        updatedAt: Date.now(),
+        createdAt: isNew ? Date.now() : (goal.createdAt || Date.now())
+      };
+
+      await setDoc(doc(db, 'goals', goal.id), payload);
+      
       setGoals(prev => {
-        const index = prev.findIndex(g => g.id === savedGoal.id);
+        const index = prev.findIndex(g => g.id === goal.id);
         if (index > -1) {
           const newGoals = [...prev];
-          newGoals[index] = savedGoal;
+          newGoals[index] = payload as Goal;
           return newGoals;
         }
-        return [savedGoal, ...prev];
+        return [payload as Goal, ...prev];
       });
-      return savedGoal;
+      return payload as Goal;
     } catch (err: any) {
       toast.error('Cloud synchronization failed.');
-      throw err;
+      handleFirestoreError(err, OperationType.WRITE, `goals/${goal.id}`);
+      throw err; // rethrow to keep existing behavior if anything relies on it
     }
   };
 
   const removeGoal = async (id: string) => {
+    if (!userId) return;
     try {
-      const response = await fetch(`/api/goals/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-user-id': DEMO_USER_ID }
-      });
-      if (!response.ok) throw new Error('Failed to remove from cloud.');
+      await deleteDoc(doc(db, 'goals', id));
       setGoals(prev => prev.filter(g => g.id !== id));
       toast.success('Node removed from strategy map.');
     } catch (err: any) {
       toast.error('Cloud removal failed.');
+      handleFirestoreError(err, OperationType.DELETE, `goals/${id}`);
     }
   };
 

@@ -145,14 +145,43 @@ export default function GoalDetail({ goal, onBack, onUpdate }: GoalDetailProps) 
         <div className="lg:col-span-3 bg-white rounded-3xl p-8 lg:p-12 border border-black/5 shadow-sm">
           <div className="flex justify-between items-center mb-10">
             <h2 className="text-3xl font-extrabold font-display text-gray-900">Milestones & Tasks</h2>
-            <button 
-              onClick={handleAddTask}
-              className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-[#0036C1] hover:underline"
-            >
-              <Plus size={20} />
-              <span>Add Task</span>
-            </button>
+            <span className="text-xs font-black uppercase tracking-widest text-gray-400">
+              {milestones.length}/5 Nodes
+            </span>
           </div>
+
+          {milestones.length < 5 && (
+            <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-2xl flex items-center gap-4">
+              <input 
+                type="text" 
+                id={`milestone-input-${goal.id}`}
+                placeholder="Enter new strategic node..."
+                className="flex-1 bg-white px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0036C1]/20 outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const input = e.target as HTMLInputElement;
+                    if (input.value.trim()) {
+                      handleAddMilestone({ title: input.value.trim() });
+                      input.value = '';
+                    }
+                  }
+                }}
+              />
+              <button 
+                onClick={() => {
+                  const input = document.getElementById(`milestone-input-${goal.id}`) as HTMLInputElement;
+                  if (input && input.value.trim()) {
+                    handleAddMilestone({ title: input.value.trim() });
+                    input.value = '';
+                  }
+                }}
+                className="flex-none px-6 py-3 bg-[#0036C1] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#002ba1] transition-colors"
+                disabled={milestones.length >= 5}
+              >
+                Add Node
+              </button>
+            </div>
+          )}
 
           <div className="space-y-4">
             {milestones.length > 0 ? (

@@ -1,20 +1,34 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Local Local Development Setup
 
-# Run and deploy your AI Studio app
+This project has been refactored for a smooth local development experience in VS Code.
 
-This contains everything you need to run your app locally.
+## Prerequisites
+- Node.js (v18 or higher)
+- VS Code
 
-View your app in AI Studio: https://ai.studio/apps/04539264-5c14-4b3d-8a1a-708395897624
+## Getting Started
 
-## Run Locally
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-**Prerequisites:**  Node.js
+2. **Configure Environment Variables**
+   Setup your `.env` file at the root of the project:
+   ```bash
+   cp .env.example .env
+   ```
+   Open the `.env` file and fill in your variables:
+   - `GEMINI_API_KEY`: Your Gemini API Key (if using AI features).
 
+3. **Run the Development Server**
+   To start the development server, run the following command in the VS Code terminal:
+   ```bash
+   npm run dev
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+5. **VS Code Debugging**
+   This project is configured with a `.vscode/launch.json` file. You can simply press `F5` (or go to Run and Debug) in VS Code to launch a browser (Chrome/Edge) instance connected to your local server for a seamless debugging experience.
+
+6. **Format and Clean Up**
+   The `.vscode/settings.json` is configured to help you format code automatically on save if you have the Prettier extension installed.

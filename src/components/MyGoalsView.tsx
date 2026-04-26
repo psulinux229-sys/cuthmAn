@@ -39,9 +39,20 @@ export default function MyGoalsView({ onGoalClick, onCreateGoal, goals }: MyGoal
               className="group bg-white rounded-3xl p-8 lg:p-10 border border-black/5 shadow-sm hover:shadow-xl transition-all cursor-pointer relative overflow-hidden flex flex-col h-full"
             >
               <div className="flex justify-between items-start mb-8">
-                <span className="px-4 py-1.5 bg-[#F8F9FF] text-[10px] font-black text-[#0036C1] rounded-full tracking-wider uppercase border border-[#DEE5FF]">
-                  {goal.category}
-                </span>
+                <div className="flex gap-2 items-center">
+                  <span className={`px-4 py-1.5 text-[10px] font-black rounded-full tracking-wider uppercase border ${
+                    goal.status === 'invalid' 
+                      ? 'bg-red-50 text-red-500 border-red-100' 
+                      : 'bg-[#F8F9FF] text-[#0036C1] border-[#DEE5FF]'
+                  }`}>
+                    {goal.category}
+                  </span>
+                  {goal.status === 'invalid' && (
+                    <span className="px-4 py-1.5 text-[10px] font-black rounded-full tracking-wider uppercase border bg-red-500 text-white border-red-600">
+                      EXPIRED
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={handleMoreOptions}
                   className="text-gray-300 hover:text-gray-900 p-2 -mr-2"

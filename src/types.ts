@@ -1,13 +1,24 @@
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 export type View = 'overview' | 'goals' | 'pricing' | 'dashboard' | 'preferences' | 'goal-detail';
 
 export interface Goal {
   id: string;
+  userId?: string;
   title: string;
   category: string;
   progress: number;
   description?: string;
   dueDate: string;
-  status: 'active' | 'completed';
+  deadline?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  status: 'active' | 'completed' | 'invalid';
   targetDate: string;
   milestones: Milestone[];
   notes: Note[];

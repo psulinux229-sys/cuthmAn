@@ -1,4 +1,4 @@
-import { Goal } from '../types';
+import { Goal, UserProfile } from '../types';
 import { MOCK_GOALS } from '../mockData';
 import { Target, Search, Bell, ChevronRight, Zap, Target as TargetIcon, Shield, Search as SearchIcon, MousePointer2 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 interface DashboardViewProps {
   onGoalClick: (goal: Goal) => void;
   goals: Goal[];
+  userProfile?: UserProfile;
 }
 
-export default function DashboardView({ onGoalClick, goals }: DashboardViewProps) {
+export default function DashboardView({ onGoalClick, goals, userProfile }: DashboardViewProps) {
   const handleStartBuilding = () => {
     toast.success('Strategy Engine initialized. Your architectural journey begins.');
   };
@@ -104,7 +105,9 @@ export default function DashboardView({ onGoalClick, goals }: DashboardViewProps
                 >
                   <Search size={20} />
                 </button>
-                <div className="w-10 h-10 bg-gray-200 rounded-full cursor-pointer hover:ring-4 hover:ring-brand-light transition-all" onClick={() => toast.info('System Identity: Cuthmaan')} />
+                <div className="w-10 h-10 bg-gray-200 rounded-full cursor-pointer hover:ring-4 hover:ring-brand-light transition-all overflow-hidden" onClick={() => toast.info(`System Identity: ${userProfile?.firstName || 'User'}`)}>
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.firstName || 'User'}`} alt="User" />
+                </div>
               </div>
             </div>
 
@@ -152,7 +155,14 @@ export default function DashboardView({ onGoalClick, goals }: DashboardViewProps
                           {idx === 0 ? <Zap size={24} /> : <MousePointer2 size={24} />}
                         </div>
                         <div>
-                          <h4 className="text-lg font-black text-gray-900">{goal.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-lg font-black text-gray-900">{goal.title}</h4>
+                            {goal.status === 'invalid' && (
+                              <span className="px-2 py-0.5 text-[8px] font-black rounded-full tracking-wider uppercase bg-red-500 text-white border border-red-600">
+                                EXPIRED
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Corporate Objectives</p>
                         </div>
                       </div>

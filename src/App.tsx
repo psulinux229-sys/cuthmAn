@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, AlertCircle, RefreshCw } from 'lucide-react';
@@ -14,9 +9,48 @@ import MyGoalsView from './components/MyGoalsView';
 import PricingView from './components/PricingView';
 import DashboardView from './components/DashboardView';
 import CreateGoalModal from './components/CreateGoalModal';
+import Login from './components/Login';
 import { Toaster, toast } from 'sonner';
-import { Goal, View } from './types';
+import { Goal, View, UserProfile } from './types';
 import { useData } from './hooks/useData';
+import { auth, db } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>(() => {
@@ -24,10 +58,72 @@ export default function App() {
     return (saved as View) || 'overview';
   });
   
-  const { goals, loading, error, saveGoal, refresh } = useData();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authUid, setAuthUid] = useState<string | undefined>(undefined);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setAuthUid(user.uid);
+        // fetch profile
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setUserProfile(docSnap.data() as UserProfile);
+          }
+        } catch (err: any) {
+          handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
+        }
+      } else {
+        setAuthUid(undefined);
+        setUserProfile(null);
+      }
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  const { goals, loading, error, saveGoal, refresh } = useData(authUid);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleLogin = async (profileData: { firstName: string; lastName: string; email: string; role: string; uid: string }) => {
+    try {
+      const payload: UserProfile = {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        email: profileData.email,
+        role: profileData.role,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      await setDoc(doc(db, 'users', profileData.uid), payload);
+      setUserProfile(payload);
+    } catch (err: any) {
+      console.error('Login error', err);
+      toast.error('Failed to save profile: ' + (err.message || ''));
+      handleFirestoreError(err, OperationType.WRITE, `users/${profileData.uid}`);
+    }
+  };
+
+  const handleUpdateProfile = async (profile: UserProfile) => {
+    if (!authUid) return;
+    try {
+      const payload = {
+        ...profile,
+        updatedAt: Date.now()
+      };
+      await setDoc(doc(db, 'users', authUid), payload, { merge: true });
+      setUserProfile(payload);
+      toast.success('Profile updated');
+    } catch (err: any) {
+      toast.error('Failed to update profile');
+      handleFirestoreError(err, OperationType.WRITE, `users/${authUid}`);
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('axiom_current_view', currentView);
@@ -44,7 +140,8 @@ export default function App() {
       ...data,
       progress: 0,
       status: 'active',
-      milestones: []
+      milestones: [],
+      notes: []
     };
     
     try {
@@ -64,26 +161,32 @@ export default function App() {
     await saveGoal({ ...goal, ...updates });
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Initializing Synapse...</p>
+      </div>
+    );
+  }
+
+  if (!userProfile && authUid) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  if (!authUid) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   const renderView = () => {
     if (error) {
-      const isMissingTable = error.code === 'MISSING_TABLE' || error.message.includes('schema cache');
-      const isMissingConfig = error.code === 'MISSING_CONFIG';
-
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto">
-          <div className={`w-16 h-16 ${isMissingTable ? 'bg-amber-50 text-amber-500' : 'bg-red-50 text-red-500'} rounded-full flex items-center justify-center mb-6`}>
-            {isMissingTable ? <RefreshCw size={32} /> : <AlertCircle size={32} />}
+          <div className={`w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6`}>
+            <AlertCircle size={32} />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {isMissingTable ? 'Database Schema Required' : 'Cloud Synapse Disconnected'}
-          </h2>
-          <p className="text-gray-500 text-sm mb-8">
-            {isMissingTable 
-              ? "The 'goals' table is missing from your Supabase database. Please run the SQL in schema.sql using the Supabase SQL Editor to initialize your cloud storage."
-              : isMissingConfig
-                ? "The architectural backup system is not yet configured. Please set up your Supabase credentials in the environment settings to unlock cloud persistence."
-                : error.message}
-          </p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Cloud Synapse Disconnected</h2>
+          <p className="text-gray-500 text-sm mb-8">{error.message}</p>
           <div className="flex gap-4">
             <button 
               onClick={() => refresh()}
@@ -108,13 +211,13 @@ export default function App() {
 
     switch (currentView) {
       case 'overview':
-        return <Dashboard onGoalClick={handleGoalClick} goals={goals} />;
+        return <Dashboard onGoalClick={handleGoalClick} goals={goals} userProfile={userProfile!} />;
       case 'goals':
         return <MyGoalsView onGoalClick={handleGoalClick} onCreateGoal={() => setIsCreateModalOpen(true)} goals={goals} />;
       case 'pricing':
         return <PricingView />;
       case 'dashboard':
-        return <DashboardView onGoalClick={handleGoalClick} goals={goals} />;
+        return <DashboardView onGoalClick={handleGoalClick} goals={goals} userProfile={userProfile!} />;
       case 'goal-detail':
         return selectedGoal ? (
           <GoalDetail 
@@ -122,9 +225,9 @@ export default function App() {
             onBack={() => setCurrentView('goals')}
             onUpdate={(updates) => handleGoalUpdate(selectedGoal.id, updates)}
           />
-        ) : <Dashboard onGoalClick={handleGoalClick} goals={goals} />;
+        ) : <Dashboard onGoalClick={handleGoalClick} goals={goals} userProfile={userProfile!} />;
       case 'preferences':
-        return <Profile />;
+        return <Profile userProfile={userProfile!} onUpdateProfile={handleUpdateProfile} />;
       default:
         return (
           <div className="flex-1 flex items-center justify-center text-gray-400 font-medium px-6">
@@ -167,6 +270,7 @@ export default function App() {
           setSelectedGoal(null);
           setIsSidebarOpen(false);
         }} 
+        userProfile={userProfile}
       />
       
       <main className="flex-1 lg:ml-64 min-h-screen pt-16 lg:pt-0">

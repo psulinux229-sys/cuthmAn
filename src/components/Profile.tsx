@@ -1,20 +1,21 @@
 import { Shield, Bell, Globe, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { UserProfile } from '../types';
 
-export default function Profile() {
+interface ProfileProps {
+  userProfile: UserProfile;
+  onUpdateProfile: (profile: UserProfile) => void;
+}
+
+export default function Profile({ userProfile, onUpdateProfile }: ProfileProps) {
   const [signals, setSignals] = useState([
     { title: 'Motivational Reminders', desc: 'Daily pushes to maintain momentum', active: true },
     { title: 'Goal Milestones', desc: 'Alerts when passing major thresholds', active: true },
     { title: 'Weekly Digest', desc: 'Email summary of performance', active: false },
   ]);
 
-  const [formData, setFormData] = useState({
-    firstName: 'Cuthmaan',
-    lastName: '',
-    email: 'cuthmaan@example.com',
-    role: 'Product Architect'
-  });
+  const [formData, setFormData] = useState(userProfile);
 
   const toggleSignal = (idx: number) => {
     const newSignals = [...signals];
@@ -24,6 +25,7 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
+    onUpdateProfile(formData);
     toast.success('Profile architecture updated.', {
       description: 'Changes have been synchronized across all nodes.'
     });
@@ -91,7 +93,7 @@ export default function Profile() {
             <div className="flex flex-col sm:flex-row gap-6 lg:gap-8 mb-10">
               <div className="relative group w-24 h-24 shrink-0 mx-auto sm:mx-0">
                 <img 
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Cuthmaan" 
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.firstName}`} 
                   alt="Avatar" 
                   className="w-full h-full rounded-2xl object-cover bg-gray-100"
                   referrerPolicy="no-referrer"

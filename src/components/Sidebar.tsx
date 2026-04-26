@@ -9,8 +9,9 @@ import {
   Tag,
   LogOut
 } from 'lucide-react';
-import { View } from '../types';
+import { View, UserProfile } from '../types';
 import { toast } from 'sonner';
+import { logOut } from '../lib/firebase';
 
 interface SidebarProps {
   currentView: View;
@@ -18,13 +19,23 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateGoal: () => void;
+  userProfile?: UserProfile;
 }
 
-export default function Sidebar({ currentView, onNavigate, isOpen, onClose, onCreateGoal }: SidebarProps) {
+export default function Sidebar({ currentView, onNavigate, isOpen, onClose, onCreateGoal, userProfile }: SidebarProps) {
   const handleHelp = () => {
     toast.info('Accessing Knowledge Base...', {
       description: 'Loading architectural support documentation.'
     });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logOut();
+      window.location.reload();
+    } catch (err) {
+      toast.error('Failed to log out');
+    }
   };
 
   const menuItems = [
@@ -92,13 +103,20 @@ export default function Sidebar({ currentView, onNavigate, isOpen, onClose, onCr
           <div className="flex items-center justify-between px-4 py-2 bg-white rounded-xl border border-black/5">
             <div className="flex items-center gap-3">
               <img 
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Cuthmaan`} 
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.firstName || 'User'}`} 
                 alt="User profile" 
                 className="w-8 h-8 rounded-full bg-gray-200"
                 referrerPolicy="no-referrer"
               />
-              <span className="text-sm font-semibold text-gray-900 truncate max-w-[100px]">Cuthmaan</span>
+              <span className="text-sm font-semibold text-gray-900 truncate max-w-[100px]">{userProfile?.firstName || 'User'}</span>
             </div>
+            <button 
+              onClick={handleSignOut}
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              title="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </div>

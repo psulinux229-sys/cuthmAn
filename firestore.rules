@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['firstName', 'lastName', 'email', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().size() == 6
+        && data.firstName is string && data.firstName.size() <= 50
+        && data.lastName is string && data.lastName.size() <= 50
+        && data.email is string && data.email.size() <= 150
+        && data.role is string && data.role.size() <= 100
+        && data.createdAt is int
+        && data.updatedAt is int;
+    }
+
+    function isValidTimestamp(val) {
+      return val is int && math.abs(val - request.time.toMillis()) < 600000; // 10 mins drift
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isSignedIn() 
+        && request.auth.uid == userId 
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && isValidTimestamp(incoming().createdAt)
+        && isValidTimestamp(incoming().updatedAt);
+      allow update: if isSignedIn() 
+        && request.auth.uid == userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['firstName', 'lastName', 'role', 'updatedAt'])
+        && incoming().firstName is string && incoming().firstName.size() <= 50
+        && incoming().lastName is string && incoming().lastName.size() <= 50
+        && incoming().role is string && incoming().role.size() <= 100
+        && isValidTimestamp(incoming().updatedAt);
+      allow delete: if false;
+    }
+
+    function isValidGoal(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'category', 'dueDate', 'targetDate', 'progress', 'status', 'milestones', 'notes', 'createdAt', 'updatedAt'])
+        && data.keys().size() >= 12
+        && data.keys().size() <= 14 // allowed optional deadline, description
+        && data.id is string
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() <= 100
+        && data.title.size() > 0
+        && data.category is string && data.category.size() <= 50
+        && data.dueDate is string && data.dueDate.size() <= 100
+        && data.targetDate is string && data.targetDate.size() <= 100
+        && data.progress is number && data.progress >= 0 && data.progress <= 100
+        && data.status is string && data.status in ['active', 'completed', 'invalid']
+        && data.milestones is list && data.milestones.size() <= 5
+        && data.notes is list && data.notes.size() <= 50
+        && data.createdAt is int
+        && data.updatedAt is int
+        && (!('description' in data) || (data.description is string && data.description.size() <= 1000))
+        && (!('deadline' in data) || (data.deadline is string && data.deadline.size() <= 50));
+    }
+
+    match /goals/{goalId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && isValidId(goalId)
+        && isValidGoal(incoming())
+        && isValidTimestamp(incoming().createdAt)
+        && isValidTimestamp(incoming().updatedAt);
+      allow update: if isSignedIn()
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && isValidGoal(incoming())
+        && isValidTimestamp(incoming().updatedAt);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

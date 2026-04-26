@@ -22,7 +22,7 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
     
     setIsSaving(true);
     try {
-      await onSave({
+      const payload: any = {
         title,
         description,
         category,
@@ -30,7 +30,13 @@ export default function CreateGoalModal({ isOpen, onClose, onSave }: CreateGoalM
         targetDate: deadline ? new Date(deadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '',
         progress: 0,
         status: 'active',
-      });
+      };
+      
+      if (deadline) {
+        payload.deadline = new Date(deadline).toISOString();
+      }
+
+      await onSave(payload);
       
       // Reset fields
       setTitle('');

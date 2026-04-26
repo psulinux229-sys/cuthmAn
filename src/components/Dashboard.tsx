@@ -1,14 +1,15 @@
 import React from 'react';
 import { MoreHorizontal, TrendingUp } from 'lucide-react';
-import { Goal } from '../types';
+import { Goal, UserProfile } from '../types';
 import { toast } from 'sonner';
 
 interface DashboardProps {
   onGoalClick: (goal: Goal) => void;
   goals: Goal[];
+  userProfile?: UserProfile;
 }
 
-export default function Dashboard({ onGoalClick, goals }: DashboardProps) {
+export default function Dashboard({ onGoalClick, goals, userProfile }: DashboardProps) {
   const totalProgress = goals.length > 0 
     ? Math.round(goals.reduce((acc, goal) => acc + (goal.progress || 0), 0) / goals.length)
     : 0;
@@ -30,7 +31,7 @@ export default function Dashboard({ onGoalClick, goals }: DashboardProps) {
         <div>
           <p className="text-[10px] font-black font-sans text-gray-400 uppercase tracking-[0.2em] mb-2">Dashboard</p>
           <h1 className="text-4xl lg:text-6xl font-bold font-display text-gray-900 tracking-tight">
-            Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}.
+            Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}{userProfile ? `, ${userProfile.firstName}` : ''}.
           </h1>
         </div>
       </div>
@@ -78,9 +79,18 @@ export default function Dashboard({ onGoalClick, goals }: DashboardProps) {
               className="group bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all cursor-pointer"
             >
               <div className="flex justify-between items-start mb-6">
-                <span className="px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 rounded-full tracking-wider uppercase">
-                  {goal.category}
-                </span>
+                <div className="flex gap-2 items-center">
+                  <span className={`px-3 py-1 text-[10px] font-bold rounded-full tracking-wider uppercase ${
+                    goal.status === 'invalid' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {goal.category}
+                  </span>
+                  {goal.status === 'invalid' && (
+                    <span className="px-3 py-1 text-[10px] font-bold rounded-full tracking-wider uppercase bg-red-500 text-white">
+                      EXPIRED
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={handleMoreOptions}
                   className="text-gray-400 hover:text-gray-600"
